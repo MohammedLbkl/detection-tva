@@ -1,0 +1,57 @@
+# --- Environnements Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.so
+
+# --- Environnement virtuel ---
+venv/
+env/
+.venv/
+
+# --- Données et sorties ---
+data/
+data/input/
+data/cropped/
+data/output/
+*.jpg
+*.png
+*.jpeg
+*.pdf
+*.csv
+*.json
+
+# --- Modèles YOLO / poids ---
+*.pt
+*.onnx
+*.engine
+
+# --- Logs et checkpoints ---
+runs/
+logs/
+*.log
+*.tmp
+
+# --- IDE / éditeurs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Fichiers système ---
+.DS_Store
+Thumbs.db
+
+# --- Cache et tests ---
+.cache/
+.pytest_cache/
+__pycache__/
+*.pytest_cache
+
+# --- Autres ---
+*.zip
+*.tar
+*.gz
+tmp/
