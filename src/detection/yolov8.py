@@ -1,12 +1,11 @@
 from ultralytics import YOLO
 
 
-
-MODEL_PATH = "src/detection/model/CornerDocument.pt"
+MODEL_PATH = "src/detection/model/Yolo-seg.pt"
 model = YOLO(MODEL_PATH)
 
 
-SOURCE = 0  
+SOURCE = 0
 
 try:
     print("Your Iphone14 pro max 512GO is activate")
