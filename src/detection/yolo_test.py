@@ -1,7 +1,7 @@
 from ultralytics import YOLO
 
 
-MODEL_PATH = "src/detection/model/Yolo-seg.pt"
+MODEL_PATH = "src/detection/models/Yolo-seg.pt"
 model = YOLO(MODEL_PATH)
 
 
@@ -11,12 +11,12 @@ try:
     print("Your Iphone14 pro max 512GO is activate")
     for result in model.predict(
         source=SOURCE,
-        show=True,        # Affiche la vidéo avec les bounding boxes
+        show=True,       
         stream=True,      
         conf=0.7,         
         verbose=False
     ):
-        pass 
+        pass
 
 except KeyboardInterrupt:
     print("Ctrl+C is press.")
