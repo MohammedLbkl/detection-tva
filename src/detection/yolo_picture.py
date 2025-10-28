@@ -14,17 +14,13 @@ Arrêt du programme :
 """
 #python3 yolo_tracker_segmented_with_deblurring.py
 import os
-import sys
 import time
 from datetime import datetime
 from ultralytics import YOLO
 from save_image import save_masked_image
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-)
-from src.add_data2db import add_data2db
-from proc.paper_detection.blurry_detection import less_blurred
+
+from blurry import less_blurred
 
 
 
@@ -32,7 +28,7 @@ from proc.paper_detection.blurry_detection import less_blurred
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Modèle YOLOv8 finetuné sur dataset RoboFlow
-MODEL_PATH = os.path.join(BASE_DIR, "../detection_model/Yolo-seg.pt")
+MODEL_PATH = os.path.join(BASE_DIR, "models/Yolo-seg.pt")
 model = YOLO(MODEL_PATH)
 
 # Timer (pour gérer les délais entre captures)
@@ -62,10 +58,10 @@ try:
                 best = less_blurred(video)  # Sélection de la frame la plus nette
                 stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-                save_dir = os.path.join(BASE_DIR, "../../../tmp")
+                save_dir = os.path.join(BASE_DIR, "tmp")
                 final_filename = save_masked_image(video[best], save_dir, stamp)
 
-                #add_data2db(final_filename)  # Sauvegarde dans la base
+ 
                 video = []  # Réinitialisation
 
         elif len(video) > 0:
@@ -73,10 +69,10 @@ try:
             best = less_blurred(video)
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-            save_dir = os.path.join(BASE_DIR, "../../../tmp")
+            save_dir = os.path.join(BASE_DIR, "tmp")
             final_filename = save_masked_image(video[best], save_dir, stamp)
 
-            #add_data2db(final_filename)
+
             video = []  # Réinitialisation
 
 except KeyboardInterrupt:
