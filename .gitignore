@@ -55,4 +55,4 @@ __pycache__/
 *.tar
 *.gz
 tmp/
-test/
+archives/
