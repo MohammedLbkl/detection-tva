@@ -49,3 +49,14 @@ class OCRReader:
         final_text = "\n------------------------------------------------------------------\n\n".join(all_texts)
         return final_text
 
+
+if __name__ == "__main__":
+    ocr = OCRReader(folder_path="src/test/tmp")
+    texte_final = ocr.read_images()
+    
+    import sys
+    sys.stdout = open("src/ocr/results.txt", "w")
+    
+    print(texte_final)
+    
+    sys.stdout.close()
