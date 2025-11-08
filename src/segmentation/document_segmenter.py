@@ -3,6 +3,11 @@ from pathlib import Path
 from huggingface_hub import hf_hub_download
 from ultralytics import YOLO
 
+import os, sys
+REPO_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+if REPO_PATH not in sys.path:
+    sys.path.insert(0, REPO_PATH)
+    
 class DocumentSegmenter:
     def __init__(self, model_index=0):
         """
@@ -67,6 +72,7 @@ class DocumentSegmenter:
     def crop_segments(self, image_path, filtered_boxes, zoom_factor=2):
         """Découpe et sauvegarde les zones détectées."""
         img = cv2.imread(image_path)
+        print(img.shape)
         crop_count = 0
 
         for b, c, conf in filtered_boxes:
@@ -79,19 +85,9 @@ class DocumentSegmenter:
                 interpolation=cv2.INTER_LINEAR
             )
 
-            crop_path = f"src/tmp/table_crop_{crop_count}.png"
+            crop_path = f"src/test/tmp/table_crop_{crop_count}.png"
             cv2.imwrite(crop_path, crop_zoom)
             crop_count += 1
-
-
-
-
-if __name__ == "__main__":
-    IMAGE_PATH = "src/images/doc1.png"
-    segmenter = DocumentSegmenter(model_index=0)
-    
-    boxes = segmenter.detect_sentence(IMAGE_PATH)
-    segmenter.crop_segments(IMAGE_PATH, boxes)
 
 
 

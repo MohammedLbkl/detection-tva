@@ -2,8 +2,13 @@ import pytesseract
 from PIL import Image
 from pathlib import Path
 import re
-import os
 
+import os, sys
+REPO_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+if REPO_PATH not in sys.path:
+    sys.path.insert(0, REPO_PATH)
+    
+    
 class OCRReader:
     def __init__(self, folder_path="src/tmp"):
         """
@@ -44,14 +49,3 @@ class OCRReader:
         final_text = "\n------------------------------------------------------------------\n\n".join(all_texts)
         return final_text
 
-
-if __name__ == "__main__":
-    ocr = OCRReader(folder_path="src/tmp")
-    texte_final = ocr.read_images()
-    
-    import sys
-    sys.stdout = open("src/ocr/results.txt", "w")
-    
-    print(texte_final)
-    
-    sys.stdout.close()
