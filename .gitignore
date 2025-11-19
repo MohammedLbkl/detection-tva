@@ -54,6 +54,6 @@ __pycache__/
 *.zip
 *.tar
 *.gz
-*.txt
+results.txt
 tmp/
 archives/
