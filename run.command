@@ -36,7 +36,9 @@ fi
 
 echo ""
 echo "Lancement de l'application..."
-echo "Ouvre ton navigateur sur : http://localhost:7860"
 echo ""
 
 python3 app.py
+
+echo "Ouvre ton navigateur sur : http://localhost:7860"
+

@@ -39,18 +39,15 @@ if not exist ".venv" (
 call .venv\Scripts\activate.bat
 
 :: Installe les dépendances si besoin
-python -c "import gradio" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Installation des dependances (quelques minutes)...
-    pip install --upgrade pip
-    pip install -r requirements.txt
-)
+echo Installation des dependances (quelques minutes)...
+pip install --upgrade pip
+pip install -r requirements.txt
 
-echo.
+
 echo Lancement de l'application...
-echo Ouvre ton navigateur sur : http://localhost:7860
-echo.
 
 python app.py
+
+echo Ouvre ton navigateur sur : http://localhost:7860
 
 pause
