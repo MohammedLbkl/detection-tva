@@ -1,16 +1,24 @@
 import gradio as gr
 import os
 import glob
-from paddleocr import PaddleOCRVL
 import threading
 import time
 import shutil
 import psycopg2
 
-pipeline = PaddleOCRVL(pipeline_version="v1.5")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 PORT = int(os.getenv("PORT", 8080))
+
+pipeline = None 
+
+def get_pipeline():
+    global pipeline
+    if pipeline is None:
+        print("Initialisation de PaddleOCR (cela peut prendre du temps)...")
+        from paddleocr import PaddleOCRVL
+        pipeline = PaddleOCRVL(pipeline_version="v1.5")
+    return pipeline
 
 def save_to_db(filename, transcription):
     """Sauvegarde en base de données : Crée ou met à jour la transcription"""
@@ -56,6 +64,8 @@ def run_ocr(image_path):
     if os.path.exists("output"):
         shutil.rmtree("output")
     os.makedirs("output", exist_ok=True)
+
+    pipeline = get_pipeline()
     
     output = pipeline.predict(image_path)
     
