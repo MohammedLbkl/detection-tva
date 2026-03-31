@@ -82,7 +82,7 @@ def run_ocr(image_path):
     img_path = img_files[0] if img_files else None
 
     filename = os.path.basename(image_path)
-    save_to_db(filename, md_content)
+    #save_to_db(filename, md_content)
 
     return md_content, img_path
 
@@ -163,11 +163,9 @@ with gr.Blocks(css=css, title="OCR Database App") as demo:
     )
 
 if __name__ == "__main__":
-    # Configuration pour le déploiement Railway
     demo.launch(
         server_name="0.0.0.0", 
-        server_port=PORT,
-        show_api=False
+        server_port=PORT
     )
 
 
