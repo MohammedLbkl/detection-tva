@@ -5,6 +5,51 @@ from paddleocr import PaddleOCRVL
 import threading
 import time
 import shutil
+import psycopg2
+
+pipeline = PaddleOCRVL(pipeline_version="v1.5")
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+PORT = int(os.getenv("PORT", 7860))
+
+def save_to_db(filename, transcription):
+    """Sauvegarde en base de données : Crée ou met à jour la transcription"""
+    if not DATABASE_URL:
+        print("DATABASE_URL non configurée.")
+        return
+    
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cur = conn.cursor()
+        
+        # 1. Création de la table avec created_at uniquement
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS scans (
+                id SERIAL PRIMARY KEY,
+                filename TEXT UNIQUE,
+                transcription TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 2. Logique Anti-doublon (Upsert)
+        # On insère le nouveau scan. Si le nom de fichier existe déjà, 
+        # on met seulement à jour la transcription.
+        query = """
+            INSERT INTO scans (filename, transcription) 
+            VALUES (%s, %s)
+            ON CONFLICT (filename) 
+            DO UPDATE SET transcription = EXCLUDED.transcription;
+        """
+        cur.execute(query, (filename, transcription))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        print(f"Base de données : '{filename}' enregistré avec succès.")
+    except Exception as e:
+        print(f"Erreur Base de données : {e}")
+
 
 def run_ocr(image_path):
 
@@ -12,7 +57,6 @@ def run_ocr(image_path):
         shutil.rmtree("output")
     os.makedirs("output", exist_ok=True)
     
-    pipeline = PaddleOCRVL(pipeline_version="v1.5")
     output = pipeline.predict(image_path)
     
     for res in output:
@@ -36,6 +80,9 @@ def run_ocr(image_path):
     
     img_files = glob.glob("output/*.png") + glob.glob("output/*.jpg")
     img_path = img_files[0] if img_files else None
+
+    filename = os.path.basename(image_path)
+    save_to_db(filename, md_content)
 
     return md_content, img_path
 
@@ -91,8 +138,8 @@ css = """
 }
 """
 
-with gr.Blocks(css=css) as demo:
-    gr.Markdown("## PaddleOCR VL")
+with gr.Blocks(css=css, title="OCR Database App") as demo:
+    gr.Markdown("# Extracteur de Documents & Archivage")
 
     with gr.Row():
         with gr.Column():
@@ -102,12 +149,12 @@ with gr.Blocks(css=css) as demo:
 
         with gr.Column(elem_id="col-result"): 
             with gr.Tabs():
-                with gr.TabItem("Résultat Markdown"):
+                with gr.TabItem("Résultat Texte"):
                     with gr.Column(elem_classes="scroll-markdown"):
                         markdown_out = gr.Markdown(min_height=700)
                 
-                with gr.TabItem("Image annotée"):
-                    image_out = gr.Image()
+                with gr.TabItem("Image Analysée"):
+                    image_out = gr.Image(label= "Zones détectées")
 
     run_btn.click(
         fn=run_ocr_with_progress, 
@@ -115,6 +162,12 @@ with gr.Blocks(css=css) as demo:
         outputs=[markdown_out, image_out]
     )
 
-demo.launch()
+if __name__ == "__main__":
+    # Configuration pour le déploiement Railway
+    demo.launch(
+        server_name="0.0.0.0", 
+        server_port=PORT,
+        show_api=False
+    )
 
 
