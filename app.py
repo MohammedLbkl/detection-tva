@@ -10,7 +10,7 @@ import psycopg2
 pipeline = PaddleOCRVL(pipeline_version="v1.5")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-PORT = int(os.getenv("PORT", 7860))
+PORT = int(os.getenv("PORT", 8080))
 
 def save_to_db(filename, transcription):
     """Sauvegarde en base de données : Crée ou met à jour la transcription"""

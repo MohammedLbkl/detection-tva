@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir gradio psycopg2-binary && \
 COPY . .
 
 
-EXPOSE 7860
+EXPOSE 8080
 
 
 CMD ["python", "app.py"]
