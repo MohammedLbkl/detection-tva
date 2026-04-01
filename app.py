@@ -61,34 +61,39 @@ def save_to_db(filename, transcription):
 
 def run_ocr(image_path):
 
-    if os.path.exists("tmp"):
-        shutil.rmtree("tmp")
-    os.makedirs("tmp", exist_ok=True)
+    base_path = "/tmp/ocr_output" 
+
+    if os.path.exists(base_path):
+        shutil.rmtree(base_path)
+    os.makedirs(base_path, exist_ok=True)
 
     pipeline = get_pipeline()
     
     output = pipeline.predict(image_path)
     
     for res in output:
-        res.save_to_markdown(save_path="tmp")
-        res.save_to_img(save_path="tmp")
+        res.save_to_markdown(save_path=base_path)
+        res.save_to_img(save_path=base_path)
 
-    md_files = glob.glob("tmp/*.md")
+    md_files = glob.glob(f"{base_path}/*.md")
+
+    if not md_files:
+        return "Aucun texte détecté.", None
 
     lines = []
-    with open(md_files[0], "r",encoding="utf-8") as f:
+    with open(md_files[0], "r", encoding="utf-8") as f:
         for line in f:
-            firt_word = line.split()[0] if line.split() else ""
-            if firt_word != "<div":
+            first_word = line.split()[0] if line.split() else ""
+            if first_word != "<div":
                 lines.append(line)
 
-    with open(md_files[0], "w",encoding="utf-8") as f:
+    with open(md_files[0], "w", encoding="utf-8") as f:
         for line in lines:
             f.write(line)
             
-    md_content = open(md_files[0], encoding="utf-8").read() if md_files else "Aucun markdown généré."
+    md_content = open(md_files[0], encoding="utf-8").read()
     
-    img_files = glob.glob("tmp/*.png") + glob.glob("tmp/*.jpg")
+    img_files = glob.glob(f"{base_path}/*.png") + glob.glob(f"{base_path}/*.jpg")
     img_path = img_files[0] if img_files else None
 
     filename = os.path.basename(image_path)
