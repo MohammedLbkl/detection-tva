@@ -61,19 +61,19 @@ def save_to_db(filename, transcription):
 
 def run_ocr(image_path):
 
-    if os.path.exists("output"):
-        shutil.rmtree("output")
-    os.makedirs("output", exist_ok=True)
+    if os.path.exists("tmp"):
+        shutil.rmtree("tmp")
+    os.makedirs("tmp", exist_ok=True)
 
     pipeline = get_pipeline()
     
     output = pipeline.predict(image_path)
     
     for res in output:
-        res.save_to_markdown(save_path="output")
-        res.save_to_img(save_path="output")
+        res.save_to_markdown(save_path="tmp")
+        res.save_to_img(save_path="tmp")
 
-    md_files = glob.glob("output/*.md")
+    md_files = glob.glob("tmp/*.md")
 
     lines = []
     with open(md_files[0], "r",encoding="utf-8") as f:
@@ -88,7 +88,7 @@ def run_ocr(image_path):
             
     md_content = open(md_files[0], encoding="utf-8").read() if md_files else "Aucun markdown généré."
     
-    img_files = glob.glob("output/*.png") + glob.glob("output/*.jpg")
+    img_files = glob.glob("tmp/*.png") + glob.glob("tmp/*.jpg")
     img_path = img_files[0] if img_files else None
 
     filename = os.path.basename(image_path)
