@@ -23,7 +23,4 @@ COPY . .
 
 EXPOSE 8080
 
-RUN python3 -c "from paddleocr import PaddleOCRVL; PaddleOCRVL(pipeline_version='v1.5')"
-RUN mkdir -p /tmp/ocr_output && chmod 777 /tmp/ocr_output
-
 CMD ["python", "app.py"]

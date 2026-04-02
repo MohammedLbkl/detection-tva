@@ -5,7 +5,8 @@ import threading
 import time
 import shutil
 import psycopg2
-
+from paddleocr import PaddleOCRVL
+pipeline = PaddleOCRVL(pipeline_version="v1.5")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 PORT = int(os.getenv("PORT", 8080))
