@@ -180,7 +180,8 @@ with gr.Blocks(css=css, title="OCR Database App") as demo:
 if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0", 
-        server_port=PORT
+        server_port=PORT,
+        allowed_paths=["/tmp/ocr_output"]
     )
 
 
