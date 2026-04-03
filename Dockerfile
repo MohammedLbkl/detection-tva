@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 
-RUN pip install --no-cache-dir gradio psycopg2-binary && \
+RUN pip install --no-cache-dir gradio psycopg2-binary google-cloud-storage && \
     pip install --no-cache-dir paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/ && \
     pip install --no-cache-dir -U "paddleocr[doc-parser]"
 

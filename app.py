@@ -5,102 +5,67 @@ import threading
 import time
 import shutil
 import psycopg2
+import os
+import io
+import glob
+import shutil
+import tempfile
+from google.cloud import storage
 from paddleocr import PaddleOCRVL
 pipeline = PaddleOCRVL(pipeline_version="v1.5")
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+
 PORT = int(os.getenv("PORT", 8080))
-
-pipeline = None 
-
-def get_pipeline():
-    global pipeline
-    if pipeline is None:
-        print("Initialisation de PaddleOCR (cela peut prendre du temps)...")
-        from paddleocr import PaddleOCRVL
-        pipeline = PaddleOCRVL(pipeline_version="v1.5")
-    return pipeline
-
-def save_to_db(filename, transcription):
-    """Sauvegarde en base de données : Crée ou met à jour la transcription"""
-    if not DATABASE_URL:
-        print("DATABASE_URL non configurée.")
-        return
-    
-    try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        
-        # 1. Création de la table avec created_at uniquement
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS scans (
-                id SERIAL PRIMARY KEY,
-                filename TEXT UNIQUE,
-                transcription TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # 2. Logique Anti-doublon (Upsert)
-        # On insère le nouveau scan. Si le nom de fichier existe déjà, 
-        # on met seulement à jour la transcription.
-        query = """
-            INSERT INTO scans (filename, transcription) 
-            VALUES (%s, %s)
-            ON CONFLICT (filename) 
-            DO UPDATE SET transcription = EXCLUDED.transcription;
-        """
-        cur.execute(query, (filename, transcription))
-        
-        conn.commit()
-        cur.close()
-        conn.close()
-        print(f"Base de données : '{filename}' enregistré avec succès.")
-    except Exception as e:
-        print(f"Erreur Base de données : {e}")
 
 
 def run_ocr(image_path):
+    client = storage.Client(project='project-3b645245-14b9-4448-94f')
 
-    base_path = "/tmp/ocr_output" 
+    bucket_name = 'bucket_detection-tva'
+    bucket = client.bucket(bucket_name)
 
-    if os.path.exists(base_path):
-        shutil.rmtree(base_path)
-    os.makedirs(base_path, exist_ok=True)
+ 
+    # Il crée un dossier caché et le SUPPRIME automatiquement à la fin du 'with'
+    with tempfile.TemporaryDirectory() as temp_dir:
+        
 
-    pipeline = get_pipeline()
-    
-    output = pipeline.predict(image_path)
-    
-    for res in output:
-        res.save_to_markdown(save_path=base_path)
-        res.save_to_img(save_path=base_path)
+        output = pipeline.predict(image_path)
+        
+        for res in output:
+            res.save_to_markdown(save_path=temp_dir)
+            res.save_to_img(save_path=temp_dir)
 
-    md_files = glob.glob(f"{base_path}/*.md")
 
-    if not md_files:
-        return "Aucun texte détecté.", None
+        md_files = glob.glob(os.path.join(temp_dir, "*.md"))
+        if not md_files:
+            return "Aucun texte détecté.", None
 
-    lines = []
-    with open(md_files[0], "r", encoding="utf-8") as f:
-        for line in f:
-            first_word = line.split()[0] if line.split() else ""
-            if first_word != "<div":
-                lines.append(line)
+        local_md_path = md_files[0]
+        lines = []
+        with open(local_md_path, "r", encoding="utf-8") as f:
+            lines = [line for line in f if not line.strip().startswith("<div")]
 
-    with open(md_files[0], "w", encoding="utf-8") as f:
-        for line in lines:
-            f.write(line)
+        with open(local_md_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
             
-    md_content = open(md_files[0], encoding="utf-8").read()
-    
-    img_files = glob.glob(f"{base_path}/*.png") + glob.glob(f"{base_path}/*.jpg")
-    img_path = img_files[0] if img_files else None
+        md_content = open(local_md_path, encoding="utf-8").read()
+        
+        # 3. Upload vers GCS
+        filename_base = os.path.basename(image_path).split('.')[0]
+        
+        # Upload Markdown
+        bucket.blob(f"{filename_base}.md").upload_from_filename(local_md_path)
 
-    filename = os.path.basename(image_path)
-    #save_to_db(filename, md_content)
+        # Upload Image
+        img_files = glob.glob(os.path.join(temp_dir, "*.png")) + glob.glob(os.path.join(temp_dir, "*.jpg"))
+        gcs_img_url = None
+        
+        if img_files:
+            remote_img_path = f"{os.path.basename(img_files[0])}"
+            bucket.blob(remote_img_path).upload_from_filename(img_files[0])
+            gcs_img_url = f"gs://{bucket_name}/{remote_img_path}"
 
-    return md_content, img_path
+    return md_content, gcs_img_url
 
 def run_ocr_with_progress(image_path, progress=gr.Progress()):
     if not image_path:
@@ -182,7 +147,6 @@ if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0", 
         server_port=PORT,
-        allowed_paths=["/tmp/ocr_output"]
     )
 
 
