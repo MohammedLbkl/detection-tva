@@ -11,19 +11,28 @@ import glob
 import shutil
 import tempfile
 from google.cloud import storage
-from paddleocr import PaddleOCRVL
-pipeline = PaddleOCRVL(pipeline_version="v1.5")
+import paddle
+paddle.disable_static()
+
 
 
 PORT = int(os.getenv("PORT", 8080))
+pipeline = None
 
+def get_pipeline():
+    global pipeline
+    if pipeline is None:
+        from paddleocr import PaddleOCRVL
+        pipeline = PaddleOCRVL(pipeline_version="v1.5")
+    return pipeline
 
-def run_ocr(image_path):
-    client = storage.Client(project='project-3b645245-14b9-4448-94f')
+def run_ocr_1(image_path):
+    #client = storage.Client(project='project-3b645245-14b9-4448-94f')
 
-    bucket_name = 'bucket_detection-tva'
-    bucket = client.bucket(bucket_name)
+    #bucket_name = 'bucket_detection-tva'
+    #bucket = client.bucket(bucket_name)
 
+    pipeline = get_pipeline()
  
     # Il crée un dossier caché et le SUPPRIME automatiquement à la fin du 'with'
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -54,7 +63,7 @@ def run_ocr(image_path):
         filename_base = os.path.basename(image_path).split('.')[0]
         
         # Upload Markdown
-        bucket.blob(f"{filename_base}.md").upload_from_filename(local_md_path)
+        #bucket.blob(f"{filename_base}.md").upload_from_filename(local_md_path)
 
         # Upload Image
         img_files = glob.glob(os.path.join(temp_dir, "*.png")) + glob.glob(os.path.join(temp_dir, "*.jpg"))
@@ -62,10 +71,55 @@ def run_ocr(image_path):
         
         if img_files:
             remote_img_path = f"{os.path.basename(img_files[0])}"
-            bucket.blob(remote_img_path).upload_from_filename(img_files[0])
-            gcs_img_url = f"gs://{bucket_name}/{remote_img_path}"
+            #bucket.blob(remote_img_path).upload_from_filename(img_files[0])
+            #gcs_img_url = f"gs://{bucket_name}/{remote_img_path}"
 
     return md_content, gcs_img_url
+
+def run_ocr(image_path):
+    base_path = "tmp/" 
+
+    if os.path.exists(base_path):
+        shutil.rmtree(base_path)
+    os.makedirs(base_path, exist_ok=True)
+
+    pipeline = get_pipeline()
+    
+    print("OCR traitement en cours...")
+
+    output = pipeline.predict(image_path)
+    
+    for res in output:
+        res.save_to_markdown(save_path=base_path)
+        res.save_to_img(save_path=base_path)
+
+    print("OCR terminé, traitement des résultats...")
+
+    md_files = glob.glob(f"{base_path}/*.md")
+
+    if not md_files:
+        return "Aucun texte détecté.", None
+
+    lines = []
+    with open(md_files[0], "r", encoding="utf-8") as f:
+        for line in f:
+            first_word = line.split()[0] if line.split() else ""
+            if first_word != "<div":
+                lines.append(line)
+
+    with open(md_files[0], "w", encoding="utf-8") as f:
+        for line in lines:
+            f.write(line)
+            
+    md_content = open(md_files[0], encoding="utf-8").read()
+    
+    img_files = glob.glob(f"{base_path}/*.png") + glob.glob(f"{base_path}/*.jpg")
+    img_path = img_files[0] if img_files else None
+
+    filename = os.path.basename(image_path)
+    #save_to_db(filename, md_content)
+
+    return md_content, img_path
 
 def run_ocr_with_progress(image_path, progress=gr.Progress()):
     if not image_path:
