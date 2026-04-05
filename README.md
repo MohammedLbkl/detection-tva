@@ -23,8 +23,30 @@ python app.py
 Opens a Gradio interface at `http://localhost:8080`.
 
 ### CLI
+
 ```bash
-python run.py -i path/to/file_or_folder -o Results -v v1.5
+python run.py -i <input> -o <output> -v <version>
+```
+
+| Argument | Short | Required | Default | Description |
+|---|---|---|---|---|
+| `--input` | `-i` | ✅ | — | Path to a single image file or a directory of images |
+| `--output` | `-o` | ❌ | `Results` | Destination directory where results will be saved |
+| `--version` | `-v` | ❌ | `v1.5` | OCR pipeline version (`v1.5` or `v1.0`) |
+
+**Process a single file:**
+```bash
+python run.py -i document.png
+```
+
+**Process a full directory:**
+```bash
+python run.py -i ./images -o ./output
+```
+
+**Use a specific pipeline version:**
+```bash
+python run.py -i ./images -o ./output -v v1.0
 ```
 
 ## Docker
