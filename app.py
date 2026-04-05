@@ -26,56 +26,6 @@ def get_pipeline():
         pipeline = PaddleOCRVL(pipeline_version="v1.5")
     return pipeline
 
-def run_ocr_1(image_path):
-    #client = storage.Client(project='project-3b645245-14b9-4448-94f')
-
-    #bucket_name = 'bucket_detection-tva'
-    #bucket = client.bucket(bucket_name)
-
-    pipeline = get_pipeline()
- 
-    # Il crée un dossier caché et le SUPPRIME automatiquement à la fin du 'with'
-    with tempfile.TemporaryDirectory() as temp_dir:
-        
-
-        output = pipeline.predict(image_path)
-        
-        for res in output:
-            res.save_to_markdown(save_path=temp_dir)
-            res.save_to_img(save_path=temp_dir)
-
-
-        md_files = glob.glob(os.path.join(temp_dir, "*.md"))
-        if not md_files:
-            return "Aucun texte détecté.", None
-
-        local_md_path = md_files[0]
-        lines = []
-        with open(local_md_path, "r", encoding="utf-8") as f:
-            lines = [line for line in f if not line.strip().startswith("<div")]
-
-        with open(local_md_path, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-            
-        md_content = open(local_md_path, encoding="utf-8").read()
-        
-        # 3. Upload vers GCS
-        filename_base = os.path.basename(image_path).split('.')[0]
-        
-        # Upload Markdown
-        #bucket.blob(f"{filename_base}.md").upload_from_filename(local_md_path)
-
-        # Upload Image
-        img_files = glob.glob(os.path.join(temp_dir, "*.png")) + glob.glob(os.path.join(temp_dir, "*.jpg"))
-        gcs_img_url = None
-        
-        if img_files:
-            remote_img_path = f"{os.path.basename(img_files[0])}"
-            #bucket.blob(remote_img_path).upload_from_filename(img_files[0])
-            #gcs_img_url = f"gs://{bucket_name}/{remote_img_path}"
-
-    return md_content, gcs_img_url
-
 def run_ocr(image_path):
     base_path = "tmp/" 
 
@@ -137,7 +87,7 @@ def run_ocr_with_progress(image_path, progress=gr.Progress()):
     thread = threading.Thread(target=ocr_thread)
     thread.start()
 
-    total_seconds = 170 
+    total_seconds = 400
     elapsed = 0
 
 
