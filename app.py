@@ -60,7 +60,7 @@ def run_ocr(image_path):
             
     md_content = open(md_files[0], encoding="utf-8").read()
     
-    img_files = glob.glob(f"{base_path}/*.png") + glob.glob(f"{base_path}/*.jpg")
+    img_files = glob.glob(f"{base_path}/*.png") + glob.glob(f"{base_path}/*.jpg") + glob.glob(f"{base_path}/*.pdf")
     img_path = img_files[0] if img_files else None
 
     filename = os.path.basename(image_path)
