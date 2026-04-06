@@ -32,7 +32,7 @@ python run.py -i <input> -o <output> -v <version>
 |---|---|---|---|---|
 | `--input` | `-i` | ✅ | — | Path to a single image file or a directory of images |
 | `--output` | `-o` | ❌ | `Results` | Destination directory where results will be saved |
-| `--version` | `-v` | ❌ | `v1.5` | OCR pipeline version (`v1.5` or `v1.0`) |
+| `--version` | `-v` | ❌ | `v1.5` | OCR pipeline version (`v1.5` or `v1`) |
 
 **Process a single file:**
 ```bash
@@ -46,7 +46,7 @@ python run.py -i ./images -o ./output
 
 **Use a specific pipeline version:**
 ```bash
-python run.py -i ./images -o ./output -v v1.0
+python run.py -i ./images -o ./output -v v1
 ```
 
 ## Docker
