@@ -5,10 +5,7 @@ import threading
 import time
 import shutil
 import psycopg2
-import os
 import io
-import glob
-import shutil
 import tempfile
 from google.cloud import storage
 import paddle
@@ -123,7 +120,7 @@ css = """
 }
 """
 
-with gr.Blocks(css=css, title="OCR Database App") as demo:
+with gr.Blocks(title="OCR Database App") as demo:
     gr.Markdown("# Extracteur de Documents & Archivage")
 
     with gr.Row():
@@ -149,8 +146,9 @@ with gr.Blocks(css=css, title="OCR Database App") as demo:
 
 if __name__ == "__main__":
     demo.launch(
-        server_name="0.0.0.0", 
+        server_name="0.0.0.0",
         server_port=PORT,
+        css=css,
     )
 
 
