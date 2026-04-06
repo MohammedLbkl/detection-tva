@@ -23,19 +23,19 @@ def get_pipeline():
         pipeline = PaddleOCRVL(pipeline_version="v1.5")
     return pipeline
 
-def run_ocr(image_path):
-    base_path = "tmp/" 
+def run_ocr(file_path):
+    base_path = "tmp/"
 
     if os.path.exists(base_path):
         shutil.rmtree(base_path)
     os.makedirs(base_path, exist_ok=True)
 
     pipeline = get_pipeline()
-    
+
     print("OCR traitement en cours...")
 
-    output = pipeline.predict(image_path)
-    
+    output = pipeline.predict(file_path)
+
     for res in output:
         res.save_to_markdown(save_path=base_path)
         res.save_to_img(save_path=base_path)
@@ -57,20 +57,20 @@ def run_ocr(image_path):
     with open(md_files[0], "w", encoding="utf-8") as f:
         for line in lines:
             f.write(line)
-            
+
     md_content = open(md_files[0], encoding="utf-8").read()
-    
+
     img_files = glob.glob(f"{base_path}/*.png") + glob.glob(f"{base_path}/*.jpg") + glob.glob(f"{base_path}/*.pdf")
     img_path = img_files[0] if img_files else None
 
-    filename = os.path.basename(image_path)
+    filename = os.path.basename(file_path)
     #save_to_db(filename, md_content)
 
     return md_content, img_path
 
-def run_ocr_with_progress(image_path, progress=gr.Progress()):
-    if not image_path:
-        raise gr.Error("Veuillez charger une image.")
+def run_ocr_with_progress(file_path, progress=gr.Progress()):
+    if not file_path:
+        raise gr.Error("Veuillez charger une image ou un PDF.")
 
     yield gr.update(value="Chargement..."), gr.update(value=None)
 
@@ -78,7 +78,7 @@ def run_ocr_with_progress(image_path, progress=gr.Progress()):
     finished = threading.Event()
 
     def ocr_thread():
-        result[0] = run_ocr(image_path)
+        result[0] = run_ocr(file_path)
         finished.set()
 
     thread = threading.Thread(target=ocr_thread)
@@ -125,7 +125,11 @@ with gr.Blocks(title="OCR Database App") as demo:
 
     with gr.Row():
         with gr.Column():
-            image_input = gr.Image(type="filepath", label="Image à analyser")
+            image_input = gr.File(
+                label="Image ou PDF à analyser",
+                file_types=[".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".pdf"],
+                type="filepath",
+            )
             run_btn = gr.Button("Lancer l'OCR", variant="primary")
 
 
