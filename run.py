@@ -1,6 +1,8 @@
 import argparse
 import os
 from src.model import OCRProcessor
+os.environ['PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK'] = 'True'
+#export PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
 
 def run_cli():
     parser = argparse.ArgumentParser(
@@ -12,7 +14,7 @@ def run_cli():
     parser.add_argument("-o", "--output", default="Results", 
                         help="Destination directory for the results")
     parser.add_argument("-v", "--version", default="v1.5", 
-                        help="OCR pipeline version (v1.5 or v1.0)")
+                        help="OCR pipeline version (v1.5 or v1)")
 
     args = parser.parse_args()
 

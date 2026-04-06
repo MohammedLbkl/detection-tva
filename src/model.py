@@ -10,7 +10,7 @@ class OCRProcessor:
 
         self.pipeline = PaddleOCRVL(pipeline_version=pipeline_version)
 
-        self.exts = ["png", "jpg", "jpeg", "JPG", "PNG", "bmp", "webp"]
+        self.exts = ["jpg", "png", "jpeg", "bmp", "pdf"]
 
     def process_item(self, input_path, output_dir):
 
@@ -59,5 +59,5 @@ class OCRProcessor:
             try:
                 self.process_item(file, output_dir)
             except Exception as e:
-                print(f"Erreur sur {file.name} : {e}. Passage au suivant.")
+                print(f"Erreur sur {file} : {e}. Passage au suivant.")
                 continue
