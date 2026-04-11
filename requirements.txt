@@ -1,5 +1,5 @@
 gradio
 psycopg2-binary
-paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+paddlepaddle-gpu
 paddleocr[doc-parser]
 google-cloud-storage
