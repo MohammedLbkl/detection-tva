@@ -7,7 +7,9 @@ import time
 import shutil
 import psycopg2
 import io
+import csv
 import tempfile
+from datetime import datetime
 from google.cloud import storage
 import paddle
 paddle.disable_static()
@@ -126,11 +128,11 @@ def run_ocr(file_path=None, dir_files=None):
     if dir_files:
         files_to_process = filter_supported_files(dir_files)
         if not files_to_process:
-            return "Aucun fichier compatible trouvé dans le dossier.", None, [], []
+            return "Aucun fichier compatible trouvé dans le dossier.", None, [], [], None
     elif file_path:
         files_to_process = [file_path]
     else:
-        return "Aucun fichier à traiter.", None, [], []
+        return "Aucun fichier à traiter.", None, [], [], None
 
     print(f"OCR traitement en cours sur {len(files_to_process)} fichier(s)...")
 
@@ -163,16 +165,36 @@ def run_ocr(file_path=None, dir_files=None):
     print("OCR terminé, traitement des résultats...")
 
     if not all_md:
-        return "Aucun texte détecté.", None, [], []
+        return "Aucun texte détecté.", None, [], [], None
 
     combined_md = "\n\n---\n\n".join(all_md)
-    return combined_md, first_img_path, md_file_paths, txt_file_paths
+
+    # Générer le fichier CSV récapitulatif
+    csv_path = os.path.join(base_path, "resultats_ocr.csv")
+    with open(csv_path, "w", encoding="utf-8-sig", newline="") as csvfile:
+        writer = csv.writer(csvfile, delimiter=";")
+        writer.writerow(["Nom du fichier", "Extension", "Taille (Ko)", "Date de modification", "Nb pages/images", "Contenu texte"])
+        for idx, fp in enumerate(files_to_process):
+            filename = os.path.basename(fp)
+            name, ext = os.path.splitext(filename)
+            size_ko = round(os.path.getsize(fp) / 1024, 2)
+            mod_time = datetime.fromtimestamp(os.path.getmtime(fp)).strftime("%Y-%m-%d %H:%M:%S")
+            # Lire le contenu txt correspondant
+            txt_path = os.path.join(base_path, f"file_{idx}", f"{name}.txt")
+            txt_content = ""
+            if os.path.exists(txt_path):
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    txt_content = f.read()
+            nb_pages = len(glob.glob(os.path.join(base_path, f"file_{idx}", "*.png"))) or 1
+            writer.writerow([filename, ext, size_ko, mod_time, nb_pages, txt_content])
+
+    return combined_md, first_img_path, md_file_paths, txt_file_paths, csv_path
 
 def run_ocr_with_progress(file_path, dir_files, progress=gr.Progress()):
     if not file_path and not dir_files:
         raise gr.Error("Veuillez charger une image/PDF ou un dossier.")
 
-    yield gr.update(value="Chargement..."), gr.update(value=None), gr.update(value=None), gr.update(value=None)
+    yield gr.update(value="Chargement..."), gr.update(value=None), gr.update(value=None), gr.update(value=None), gr.update(value=None)
 
     result = [None]
     finished = threading.Event()
@@ -198,8 +220,8 @@ def run_ocr_with_progress(file_path, dir_files, progress=gr.Progress()):
 
     thread.join()
 
-    md_content, img_path, md_file_paths, txt_file_paths = result[0]
-    yield md_content, img_path, md_file_paths, txt_file_paths
+    md_content, img_path, md_file_paths, txt_file_paths, csv_path = result[0]
+    yield md_content, img_path, md_file_paths, txt_file_paths, csv_path
 
 # CSS 
 css = """
@@ -261,10 +283,16 @@ with gr.Blocks(title="OCR Database App") as demo:
                         interactive=False,
                     )
 
+                with gr.TabItem("Fichier CSV"):
+                    csv_file_out = gr.File(
+                        label="Fichier CSV récapitulatif",
+                        interactive=False,
+                    )
+
     run_btn.click(
         fn=run_ocr_with_progress,
         inputs=[image_input, dir_input],
-        outputs=[markdown_out, image_out, md_files_out, txt_files_out]
+        outputs=[markdown_out, image_out, md_files_out, txt_files_out, csv_file_out]
     )
 
 if __name__ == "__main__":
