@@ -11,6 +11,8 @@ A document OCR tool powered by PaddleOCR. Upload an image and get the extracted 
 ## Installation
 
 ```bash
+uv venv
+source .venv/bin/activate
 ./install.sh
 ```
 
