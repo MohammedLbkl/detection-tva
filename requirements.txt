@@ -1,5 +1,4 @@
 gradio
 psycopg2-binary
-paddlepaddle-gpu
 paddleocr[doc-parser]
 google-cloud-storage

@@ -4,15 +4,25 @@ A document OCR tool powered by PaddleOCR. Upload an image and get the extracted 
 
 ## Requirements
 - Python 3.10
-- PaddlePaddle 3.3.0 (CPU)
+- PaddlePaddle 3.3.1 (CPU or GPU)
 - PaddleOCR with doc-parser
 - Gradio
 
 ## Installation
 
 ```bash
-pip install -r requirements.txt
+./install.sh
 ```
+
+The script automatically detects GPU availability and CUDA version to install the appropriate PaddlePaddle package:
+
+| Environment | Installed package |
+|---|---|
+| No GPU | `paddlepaddle` (CPU) |
+| CUDA >= 13.0 | `paddlepaddle-gpu` (cu130) |
+| CUDA 12.9 | `paddlepaddle-gpu` (cu129) |
+| CUDA 12.6 - 12.8 | `paddlepaddle-gpu` (cu126) |
+| CUDA 11.8 - 12.5 | `paddlepaddle-gpu` (cu118) |
 
 ## Usage
 
