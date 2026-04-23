@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 
-RUN pip install --no-cache-dir --default-timeout=1000 gradio psycopg2-binary google-cloud-storage
+RUN pip install --no-cache-dir --default-timeout=1000 gradio psycopg2-binary google-cloud-storage openocr-python
 
 RUN pip install --no-cache-dir --default-timeout=1000 paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
 

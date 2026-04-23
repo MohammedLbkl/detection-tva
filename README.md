@@ -6,6 +6,7 @@ A document OCR tool powered by PaddleOCR. Upload an image and get the extracted 
 - Python 3.10
 - PaddlePaddle 3.3.1 (CPU or GPU)
 - PaddleOCR with doc-parser
+- Openocr
 - Gradio
 
 ## Installation
@@ -37,14 +38,14 @@ Opens a Gradio interface at `http://localhost:8080`.
 ### CLI
 
 ```bash
-python run.py -i <input> -o <output> -v <version>
+python run.py -i <input> -o <output> -m <mode>
 ```
 
 | Argument | Short | Required | Default | Description |
 |---|---|---|---|---|
 | `--input` | `-i` | ✅ | — | Path to a single image file or a directory of images |
 | `--output` | `-o` | ❌ | `Results` | Destination directory where results will be saved |
-| `--version` | `-v` | ❌ | `v1.5` | OCR pipeline version (`v1.5` or `v1`) |
+| `--mode` | `-m` | ❌ | `fast` | OCR pipeline mode (`fast` or `precise`) |
 
 **Process a single file:**
 ```bash
@@ -58,7 +59,7 @@ python run.py -i ./images -o ./output
 
 **Use a specific pipeline version:**
 ```bash
-python run.py -i ./images -o ./output -v v1
+python run.py -i ./images -o ./output -m precise
 ```
 
 ## Docker

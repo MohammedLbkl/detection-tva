@@ -59,7 +59,7 @@ def process_single_file(file_path, save_dir, modele="fast"):
     with open(md_files[0], "r", encoding="utf-8") as f:
         for line in f:
             first_word = line.split()[0] if line.split() else ""
-            if first_word != "<div":
+            if first_word != "<div" and first_word != "<img":
                 lines.append(line)
 
     with open(md_files[0], "w", encoding="utf-8") as f:
