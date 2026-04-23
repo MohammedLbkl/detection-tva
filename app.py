@@ -7,10 +7,17 @@ from src.ocr_processor import run_ocr
 
 PORT = int(os.getenv("PORT", 8080))
 
+MODELE_CONFIG = {
+    "fast": {"label": "Rapide (~15 sec)", "seconds": 15},
+    "precise": {"label": "Précis (~10 min)", "seconds": 600},
+}
 
-def run_ocr_with_progress(file_path, dir_files, progress=gr.Progress()):
+def run_ocr_with_progress(file_path, dir_files, modele_choice, progress=gr.Progress()):
     if not file_path and not dir_files:
         raise gr.Error("Veuillez charger une image/PDF ou un dossier.")
+
+    modele = "fast" if modele_choice == "Rapide (~15 sec)" else "precise"
+    total_seconds = MODELE_CONFIG[modele]["seconds"]
 
     yield gr.update(value="Chargement..."), gr.update(value=None), gr.update(value=None), gr.update(value=None)
 
@@ -18,21 +25,16 @@ def run_ocr_with_progress(file_path, dir_files, progress=gr.Progress()):
     finished = threading.Event()
 
     def ocr_thread():
-        result[0] = run_ocr(file_path=file_path, dir_files=dir_files)
+        result[0] = run_ocr(file_path=file_path, dir_files=dir_files, modele=modele)
         finished.set()
 
     thread = threading.Thread(target=ocr_thread)
     thread.start()
 
-    total_seconds = 400
     elapsed = 0
-
-
     while not finished.is_set():
         percent = min(elapsed / total_seconds, 0.95)
-        progress(percent, desc=f"OCR en cours... {int(percent*100)}%")
-
-
+        progress(percent, desc=f"OCR en cours... {int(percent * 100)}%")
         time.sleep(1)
         elapsed += 1
 
@@ -41,7 +43,7 @@ def run_ocr_with_progress(file_path, dir_files, progress=gr.Progress()):
     md_content, img_path, zip_path, csv_path = result[0]
     yield md_content, img_path, zip_path, csv_path
 
-# CSS
+
 css = """
 .gradio-container {
     min-height: 600px;
@@ -49,10 +51,9 @@ css = """
 #col-result {
     min-height: 500px;
 }
-/* La classe pour le scroll du Markdown */
 .scroll-markdown {
-    max-height: 800px;   /* Hauteur maximum avant l'apparition du scroll */
-    overflow-y: auto;    /* Active la barre de défilement à droite */
+    max-height: 800px;
+    overflow-y: auto;
     padding: 15px;
     border: 1px solid var(--border-color-primary);
     border-radius: 10px;
@@ -60,7 +61,7 @@ css = """
 }
 """
 
-with gr.Blocks(title="OCR Database App") as demo:
+with gr.Blocks(title="OCR Database App", css=css) as demo:
     gr.Markdown("# Extracteur de Documents & Archivage")
 
     with gr.Row():
@@ -75,8 +76,15 @@ with gr.Blocks(title="OCR Database App") as demo:
                 file_count="directory",
                 type="filepath",
             )
-            run_btn = gr.Button("Lancer l'OCR", variant="primary")
 
+            modele_radio = gr.Radio(
+                choices=["Rapide (~15 sec)", "Précis (~10 min)"],
+                value="Rapide (~15 sec)",
+                label="Modèle OCR",
+                info="Rapide : résultats en ~15 sec. Précis : meilleure qualité, ~10 min.",
+            )
+
+            run_btn = gr.Button("Lancer l'OCR", variant="primary")
 
         with gr.Column(elem_id="col-result"):
             with gr.Tabs():
@@ -85,7 +93,7 @@ with gr.Blocks(title="OCR Database App") as demo:
                         markdown_out = gr.Markdown(min_height=700)
 
                 with gr.TabItem("Image Analysée"):
-                    image_out = gr.Image(label= "Zones détectées")
+                    image_out = gr.Image(label="Zones détectées")
 
                 with gr.TabItem("Archive ZIP"):
                     zip_file_out = gr.File(
@@ -101,13 +109,12 @@ with gr.Blocks(title="OCR Database App") as demo:
 
     run_btn.click(
         fn=run_ocr_with_progress,
-        inputs=[image_input, dir_input],
-        outputs=[markdown_out, image_out, zip_file_out, csv_file_out]
+        inputs=[image_input, dir_input, modele_radio],
+        outputs=[markdown_out, image_out, zip_file_out, csv_file_out],
     )
 
 if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=PORT,
-        css=css,
     )

@@ -30,14 +30,24 @@ def modele_ocr_0_1B(file_path=None, save_dir=None):
 
 
 
-def process_single_file(file_path, save_dir):
+def process_single_file(file_path, save_dir, modele="fast"):
 
     os.makedirs(save_dir, exist_ok=True)
 
-    modele_ocr_0_1B(file_path, save_dir)
+    basename = file_path.split("/")[-1].split(".")[0]
 
-    file_path = file_path.split("/")[-1].split(".")[0]
-    md_files = glob.glob(f"{save_dir}/{file_path}/*.md")
+    if modele == "fast":
+        modele_ocr_0_1B(file_path, save_dir)
+    else:
+        modele_ocr(file_path, save_dir)
+        new_dir = os.path.join(save_dir, basename)
+        os.makedirs(new_dir, exist_ok=True)
+        for file in glob.glob(f"{save_dir}/*"):
+            shutil.move(file, new_dir)
+
+    
+    md_files = glob.glob(f"{save_dir}/{basename}/*.md")
+
 
     #if you replace this line : "modele_ocr_0_1B(file_path, save_dir)" by "modele_ocr(file_path, save_dir)", you need to change the glob pattern.
     #md_files = glob.glob(f"{save_dir}/*.md")
@@ -49,7 +59,7 @@ def process_single_file(file_path, save_dir):
     with open(md_files[0], "r", encoding="utf-8") as f:
         for line in f:
             first_word = line.split()[0] if line.split() else ""
-            if first_word != "<img":
+            if first_word != "<div":
                 lines.append(line)
 
     with open(md_files[0], "w", encoding="utf-8") as f:
@@ -69,14 +79,14 @@ def process_single_file(file_path, save_dir):
     with open(named_txt, "w", encoding="utf-8") as f:
         f.write(html_to_text(md_content))
 
-    img_files = glob.glob(f"{save_dir}/{file_path}/*.png") + glob.glob(f"{save_dir}/{file_path}/*.jpg") + glob.glob(f"{save_dir}/{file_path}/*.pdf")
+    img_files = glob.glob(f"{save_dir}/{basename}/*.png") + glob.glob(f"{save_dir}/{basename}/*.jpg") + glob.glob(f"{save_dir}/{basename}/*.pdf")
     #img_files = glob.glob(f"{save_dir}/*.png") + glob.glob(f"{save_dir}/*.jpg") + glob.glob(f"{save_dir}/*.pdf")
     img_path = img_files[0] if img_files else None
 
     return md_content, img_path, named_md, named_txt
 
 
-def run_ocr(file_path=None, dir_files=None):
+def run_ocr(file_path=None, dir_files=None, modele="fast"):
     base_path = "tmp/"
 
     if os.path.exists(base_path):
@@ -102,7 +112,7 @@ def run_ocr(file_path=None, dir_files=None):
 
     for idx, fp in enumerate(files_to_process):
         save_dir = os.path.join(base_path, f"file_{idx}")
-        md_content, img_path, md_path, txt_path = process_single_file(fp, save_dir)
+        md_content, img_path, md_path, txt_path = process_single_file(fp, save_dir, modele=modele)
 
         if md_content is None:
             continue
@@ -161,9 +171,10 @@ def run_ocr(file_path=None, dir_files=None):
 if __name__ == "__main__":
     file_path = "data/doc1.png"
     save_dir = "output/"
-    md_content, img_path, named_md, named_txt = process_single_file(file_path, save_dir)
+    md_content, img_path, named_md, named_txt = process_single_file(file_path, save_dir,  modele="fast")
     print("Markdown content:", md_content)
 
+    exit()
     combined_md, first_img_path, zip_path, csv_path = run_ocr(file_path=file_path)
     print("Combined Markdown:", combined_md)
     print("First image path:", first_img_path)

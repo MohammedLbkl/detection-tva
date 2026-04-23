@@ -4,6 +4,7 @@ paddle.disable_static()
 
 _pipeline = None
 
+_pipeline_01B = None
 
 def detect_device():
     try:
@@ -27,14 +28,14 @@ def get_pipeline(version="v1.5"):
 
 
 def get_pipeline_0_1B():
-    global _pipeline
-    if _pipeline is None:
+    global _pipeline_01B
+    if _pipeline_01B is None:
         from openocr import OpenOCR
-        _pipeline = OpenOCR(
+        _pipeline_01B = OpenOCR(
         task='doc',
         use_layout_detection=True,
         )
-    return _pipeline
+    return _pipeline_01B
 
 
 
