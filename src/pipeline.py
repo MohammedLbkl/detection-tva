@@ -23,3 +23,18 @@ def get_pipeline(version="v1.5"):
         device = detect_device()
         _pipeline = PaddleOCRVL(pipeline_version=version, device=device)
     return _pipeline
+
+
+
+def get_pipeline_0_1B():
+    global _pipeline
+    if _pipeline is None:
+        from openocr import OpenOCR
+        _pipeline = OpenOCR(
+        task='doc',
+        use_layout_detection=True,
+        )
+    return _pipeline
+
+
+

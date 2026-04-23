@@ -5,13 +5,12 @@ import csv
 import zipfile
 from datetime import datetime
 
-from src.pipeline import get_pipeline
+from src.pipeline import get_pipeline, get_pipeline_0_1B
 from src.text_utils import html_to_text
 from src.file_utils import filter_supported_files
 
 
-def process_single_file(file_path, save_dir):
-    os.makedirs(save_dir, exist_ok=True)
+def modele_ocr(file_path=None, save_dir=None):
 
     pipeline = get_pipeline()
     output = pipeline.predict(file_path)
@@ -20,7 +19,29 @@ def process_single_file(file_path, save_dir):
         res.save_to_markdown(save_path=save_dir)
         res.save_to_img(save_path=save_dir)
 
-    md_files = glob.glob(f"{save_dir}/*.md")
+def modele_ocr_0_1B(file_path=None, save_dir=None):
+
+    pipeline = get_pipeline_0_1B()
+    result = pipeline(image_path= file_path)
+
+    pipeline.save_to_markdown(result, save_dir)
+    pipeline.save_visualization(result, save_dir)
+
+
+
+
+def process_single_file(file_path, save_dir):
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    modele_ocr_0_1B(file_path, save_dir)
+
+    file_path = file_path.split("/")[-1].split(".")[0]
+    md_files = glob.glob(f"{save_dir}/{file_path}/*.md")
+
+    #if you replace this line : "modele_ocr_0_1B(file_path, save_dir)" by "modele_ocr(file_path, save_dir)", you need to change the glob pattern.
+    #md_files = glob.glob(f"{save_dir}/*.md")
+
     if not md_files:
         return None, None, None, None
 
@@ -28,7 +49,7 @@ def process_single_file(file_path, save_dir):
     with open(md_files[0], "r", encoding="utf-8") as f:
         for line in f:
             first_word = line.split()[0] if line.split() else ""
-            if first_word != "<div":
+            if first_word != "<img":
                 lines.append(line)
 
     with open(md_files[0], "w", encoding="utf-8") as f:
@@ -48,7 +69,8 @@ def process_single_file(file_path, save_dir):
     with open(named_txt, "w", encoding="utf-8") as f:
         f.write(html_to_text(md_content))
 
-    img_files = glob.glob(f"{save_dir}/*.png") + glob.glob(f"{save_dir}/*.jpg") + glob.glob(f"{save_dir}/*.pdf")
+    img_files = glob.glob(f"{save_dir}/{file_path}/*.png") + glob.glob(f"{save_dir}/{file_path}/*.jpg") + glob.glob(f"{save_dir}/{file_path}/*.pdf")
+    #img_files = glob.glob(f"{save_dir}/*.png") + glob.glob(f"{save_dir}/*.jpg") + glob.glob(f"{save_dir}/*.pdf")
     img_path = img_files[0] if img_files else None
 
     return md_content, img_path, named_md, named_txt
@@ -135,3 +157,15 @@ def run_ocr(file_path=None, dir_files=None):
                 zf.write(path, arcname=os.path.join("txt", os.path.basename(path)))
 
     return combined_md, first_img_path, zip_path, csv_path
+
+if __name__ == "__main__":
+    file_path = "data/doc1.png"
+    save_dir = "output/"
+    md_content, img_path, named_md, named_txt = process_single_file(file_path, save_dir)
+    print("Markdown content:", md_content)
+
+    combined_md, first_img_path, zip_path, csv_path = run_ocr(file_path=file_path)
+    print("Combined Markdown:", combined_md)
+    print("First image path:", first_img_path)
+    print("Zip archive path:", zip_path)
+    print("CSV file path:", csv_path)
