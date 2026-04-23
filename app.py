@@ -1,121 +1,59 @@
 import gradio as gr
 import os
-import glob
 import threading
 import time
-import shutil
-import psycopg2
-import os
-import io
-import glob
-import shutil
-import tempfile
-from google.cloud import storage
-import paddle
-paddle.disable_static()
 
-
+from src.ocr_processor import run_ocr
 
 PORT = int(os.getenv("PORT", 8080))
-pipeline = None
 
-def get_pipeline():
-    global pipeline
-    if pipeline is None:
-        from paddleocr import PaddleOCRVL
-        pipeline = PaddleOCRVL(pipeline_version="v1.5")
-    return pipeline
+MODELE_CONFIG = {
+    "fast": {"label": "Rapide (~15 sec)", "seconds": 15},
+    "precise": {"label": "Précis (~10 min)", "seconds": 600},
+}
 
-def run_ocr(image_path):
-    base_path = "tmp/" 
+def run_ocr_with_progress(file_path, dir_files, modele_choice, progress=gr.Progress()):
+    if not file_path and not dir_files:
+        raise gr.Error("Veuillez charger une image/PDF ou un dossier.")
 
-    if os.path.exists(base_path):
-        shutil.rmtree(base_path)
-    os.makedirs(base_path, exist_ok=True)
+    modele = "fast" if modele_choice == "Rapide (~15 sec)" else "precise"
+    total_seconds = MODELE_CONFIG[modele]["seconds"]
 
-    pipeline = get_pipeline()
-    
-    print("OCR traitement en cours...")
-
-    output = pipeline.predict(image_path)
-    
-    for res in output:
-        res.save_to_markdown(save_path=base_path)
-        res.save_to_img(save_path=base_path)
-
-    print("OCR terminé, traitement des résultats...")
-
-    md_files = glob.glob(f"{base_path}/*.md")
-
-    if not md_files:
-        return "Aucun texte détecté.", None
-
-    lines = []
-    with open(md_files[0], "r", encoding="utf-8") as f:
-        for line in f:
-            first_word = line.split()[0] if line.split() else ""
-            if first_word != "<div":
-                lines.append(line)
-
-    with open(md_files[0], "w", encoding="utf-8") as f:
-        for line in lines:
-            f.write(line)
-            
-    md_content = open(md_files[0], encoding="utf-8").read()
-    
-    img_files = glob.glob(f"{base_path}/*.png") + glob.glob(f"{base_path}/*.jpg")
-    img_path = img_files[0] if img_files else None
-
-    filename = os.path.basename(image_path)
-    #save_to_db(filename, md_content)
-
-    return md_content, img_path
-
-def run_ocr_with_progress(image_path, progress=gr.Progress()):
-    if not image_path:
-        raise gr.Error("Veuillez charger une image.")
-
-    yield gr.update(value="Chargement..."), gr.update(value=None)
+    yield gr.update(value="Chargement..."), gr.update(value=None), gr.update(value=None), gr.update(value=None)
 
     result = [None]
     finished = threading.Event()
 
     def ocr_thread():
-        result[0] = run_ocr(image_path)
+        result[0] = run_ocr(file_path=file_path, dir_files=dir_files, modele=modele)
         finished.set()
 
     thread = threading.Thread(target=ocr_thread)
     thread.start()
 
-    total_seconds = 400
     elapsed = 0
-
-
     while not finished.is_set():
         percent = min(elapsed / total_seconds, 0.95)
-        progress(percent, desc=f"OCR en cours... {int(percent*100)}%")
-        
-        
+        progress(percent, desc=f"OCR en cours... {int(percent * 100)}%")
         time.sleep(1)
         elapsed += 1
 
     thread.join()
-    
-    md_content, img_path = result[0]
-    yield md_content, img_path
 
-# CSS 
+    md_content, img_path, zip_path, csv_path = result[0]
+    yield md_content, img_path, zip_path, csv_path
+
+
 css = """
 .gradio-container {
-    min-height: 600px; 
+    min-height: 600px;
 }
 #col-result {
     min-height: 500px;
 }
-/* La classe pour le scroll du Markdown */
 .scroll-markdown {
-    max-height: 800px;   /* Hauteur maximum avant l'apparition du scroll */
-    overflow-y: auto;    /* Active la barre de défilement à droite */
+    max-height: 800px;
+    overflow-y: auto;
     padding: 15px;
     border: 1px solid var(--border-color-primary);
     border-radius: 10px;
@@ -123,34 +61,60 @@ css = """
 }
 """
 
-with gr.Blocks(css=css, title="OCR Database App") as demo:
+with gr.Blocks(title="OCR Database App", css=css) as demo:
     gr.Markdown("# Extracteur de Documents & Archivage")
 
     with gr.Row():
         with gr.Column():
-            image_input = gr.Image(type="filepath", label="Image à analyser")
+            image_input = gr.File(
+                label="Image ou PDF à analyser",
+                file_types=[".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".pdf"],
+                type="filepath",
+            )
+            dir_input = gr.File(
+                label="Ou dossier à analyser",
+                file_count="directory",
+                type="filepath",
+            )
+
+            modele_radio = gr.Radio(
+                choices=["Rapide (~15 sec)", "Précis (~10 min)"],
+                value="Rapide (~15 sec)",
+                label="Modèle OCR",
+                info="Rapide : résultats en ~15 sec. Précis : meilleure qualité, ~10 min.",
+            )
+
             run_btn = gr.Button("Lancer l'OCR", variant="primary")
 
-
-        with gr.Column(elem_id="col-result"): 
+        with gr.Column(elem_id="col-result"):
             with gr.Tabs():
                 with gr.TabItem("Résultat Texte"):
                     with gr.Column(elem_classes="scroll-markdown"):
                         markdown_out = gr.Markdown(min_height=700)
-                
+
                 with gr.TabItem("Image Analysée"):
-                    image_out = gr.Image(label= "Zones détectées")
+                    image_out = gr.Image(label="Zones détectées")
+
+                with gr.TabItem("Archive ZIP"):
+                    zip_file_out = gr.File(
+                        label="Archive ZIP (Markdown + TXT)",
+                        interactive=False,
+                    )
+
+                with gr.TabItem("Fichier CSV"):
+                    csv_file_out = gr.File(
+                        label="Fichier CSV récapitulatif",
+                        interactive=False,
+                    )
 
     run_btn.click(
-        fn=run_ocr_with_progress, 
-        inputs=image_input, 
-        outputs=[markdown_out, image_out]
+        fn=run_ocr_with_progress,
+        inputs=[image_input, dir_input, modele_radio],
+        outputs=[markdown_out, image_out, zip_file_out, csv_file_out],
     )
 
 if __name__ == "__main__":
     demo.launch(
-        server_name="0.0.0.0", 
+        server_name="0.0.0.0",
         server_port=PORT,
     )
-
-
