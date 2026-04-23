@@ -4,7 +4,7 @@ from pathlib import Path
 
 import tqdm
 
-from src.pipeline import get_pipeline
+from src.pipeline import get_pipeline, get_pipeline_0_1B
 from src.ocr_processor import process_single_file
 from src.file_utils import SUPPORTED_EXTS
 
@@ -18,13 +18,16 @@ def run_cli():
                         help="Path to the input file or directory")
     parser.add_argument("-o", "--output", default="Results",
                         help="Destination directory for the results")
-    parser.add_argument("-v", "--version", default="v1.5",
-                        help="OCR pipeline version (v1.5 or v1.0)")
+    parser.add_argument("-m", "--mode", default="fast",
+                        help="OCR pipeline mode (precise or fast)")
 
     args = parser.parse_args()
 
-    # Initialise le pipeline avec la version demandée
-    get_pipeline(version=args.version)
+    if args.mode == "precise":
+        get_pipeline()
+    elif args.mode == "fast":
+        get_pipeline_0_1B()
+
 
     if os.path.isfile(args.input):
         files = [args.input]
@@ -40,9 +43,8 @@ def run_cli():
         return
 
     for fp in tqdm.tqdm(files):
-        save_dir = os.path.join(args.output, Path(fp).stem)
         try:
-            process_single_file(fp, save_dir)
+            process_single_file(fp, args.output, modele=args.mode)
         except Exception as e:
             print(f"Erreur sur {fp} : {e}. Passage au suivant.")
 

@@ -2,3 +2,4 @@ gradio
 psycopg2-binary
 paddleocr[doc-parser]
 google-cloud-storage
+openocr-python
